@@ -43,8 +43,8 @@
             background: var(--led-ring);
             color: white;
             text-align: center;
-            font-size: min(2vh, 3vw);
-            padding: 1vh 0;
+            font-size: 20px;
+            padding: 12px 0;
             z-index: 100;
             letter-spacing: 2px;
             font-weight: bold;
@@ -53,17 +53,17 @@
         .screen {
             position: fixed;
             top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            width: 100%; height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
             background: transparent;
-            padding: 0 2vw;
+            padding: 0 4%;
         }
 
-        /* 通常テキストスタイル（ネオン風） */
+        /* 通常テキスト（ネオン風）の文字サイズを大きめに固定 */
         .normal-text {
             color: var(--led-on);
             text-shadow: 0 0 4px var(--led-glow), 0 0 10px var(--led-glow);
@@ -72,47 +72,47 @@
             white-space: nowrap;
         }
 
-        /* 西暦・日付・曜日（少しデカく） */
+        /* 西暦・日付・曜日 */
         .date-display {
-            font-size: min(7vh, 8vw);
-            margin-bottom: 4vh;
+            font-size: 38px;
+            margin-bottom: 30px;
         }
 
-        /* メイン時計（ほんの少し小さく） */
+        /* メイン時計コンテナ */
         .main-time-container {
-            height: min(28vh, 20vw); 
+            height: 25%; 
+            width: 90%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1vw;
         }
 
-        /* ステータス（アラーム設定時刻など） */
+        /* ステータス（アラーム設定時刻） */
         .status-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 5vh;
-            height: min(8vh, 10vw);
+            margin-top: 40px;
+            height: 50px;
         }
         .status-text {
-            font-size: min(4.5vh, 5.5vw);
+            font-size: 26px;
         }
 
         /* タイトル・警告テキスト */
-        .text-title { font-size: min(7vh, 9vw); margin-bottom: 3vh; }
-        .wake-up-text { font-size: min(25vh, 25vw); margin: 0; line-height: 1; }
+        .text-title { font-size: 36px; margin-bottom: 25px; }
+        .wake-up-text { font-size: 100px; margin: 0; line-height: 1; }
 
         /* ガイド（説明）テキスト */
         .guide-bar {
-            font-size: min(2vh, 2.5vw); color: #666; letter-spacing: 2px; font-weight: bold; text-align: center; margin-top: 4vh;
+            font-size: 16px; color: #666; letter-spacing: 2px; font-weight: bold; text-align: center; margin-top: 30px;
         }
-        .active-guide { color: #ccc; font-size: min(3vh, 4vw); }
+        .active-guide { color: #ccc; font-size: 22px; }
 
-        /* 7セグメントの比率と傾き設定 */
-        .digit-box { height: 100%; aspect-ratio: 70 / 100; transform: skewX(-6deg); }
-        .colon-box { height: 100%; aspect-ratio: 20 / 100; transform: skewX(-6deg); }
-        .space-box { height: 100%; aspect-ratio: 30 / 100; transform: skewX(-6deg); }
+        /* 7セグメントの大きさを%で厳密に固定 */
+        .digit-box { height: 100%; width: 11%; transform: skewX(-6deg); }
+        .colon-box { height: 100%; width: 4%; transform: skewX(-6deg); }
+        .space-box { height: 100%; width: 5%; transform: skewX(-6deg); }
 
         .digit-svg, .colon-svg { 
             width: 100%; height: 100%; 
@@ -129,15 +129,15 @@
             filter: drop-shadow(0 0 4px var(--led-glow)) drop-shadow(0 0 10px var(--led-glow));
         }
 
-        /* ピッカー周りの調整 */
+        /* ピッカー周りのパーセンテージ調整 */
         .picker-container { 
             display: flex; 
             flex-direction: row; 
             align-items: center; 
             justify-content: center; 
-            gap: 6vw; 
-            height: min(25vh, 25vw); 
-            width: 100%;
+            gap: 5%; 
+            height: 30%; 
+            width: 90%;
         }
         .picker-group { 
             display: flex; 
@@ -147,13 +147,27 @@
             opacity: 0.2; 
             transition: opacity 0.2s; 
             height: 100%;
+            width: 25%;
         }
         .picker-group.active-focus { opacity: 1; }
-        .picker-group .digit-pair { height: 50%; display: flex; gap: 0.5vw;} 
         
-        .arrow { font-size: min(5vh, 6vw); color: var(--text-muted); margin: 0; font-weight: bold; cursor: pointer;}
+        /* 2桁の数字が離れすぎないように幅を固定 */
+        .picker-group .digit-pair { 
+            height: 60%; 
+            width: 100%;
+            display: flex; 
+            justify-content: center;
+            gap: 4%;
+        } 
+        /* 設定画面内の数字の箱サイズ */
+        .picker-group .digit-pair .digit-box {
+            height: 100%;
+            width: 45%;
+        }
+        
+        .arrow { font-size: 28px; color: var(--text-muted); margin: 0; font-weight: bold; cursor: pointer;}
         .active-focus .arrow { color: var(--led-on); text-shadow: 0 0 10px var(--led-glow); }
-        .picker-label { font-size: min(4vh, 5vw); margin-top: 1vh; }
+        .picker-label { font-size: 22px; margin-top: 5px; }
 
     </style>
 </head>
@@ -166,7 +180,6 @@
         <div id="date-text" class="normal-text date-display"></div>
         <div id="clock-container" class="main-time-container"></div>
         <div class="status-row">
-            <!-- アラーム時刻も通常テキストで表示 -->
             <div id="status-text" class="normal-text status-text"></div>
         </div>
     </div>
@@ -196,7 +209,7 @@
         </div>
     </div>
 
-    <!-- キャンセル画面（説明を復活） -->
+    <!-- キャンセル画面 -->
     <div class="screen" id="cancel-screen" style="display:none;">
         <div class="normal-text text-title">CANCEL ALARM?</div>
         <div class="guide-bar active-guide">[E] TURN OFF ALARM &nbsp;&nbsp;&nbsp; [Q] KEEP ALARM</div>
@@ -207,11 +220,12 @@
         <div class="normal-text wake-up-text">WAKE UP!</div>
     </div>
 
-    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" loop></audio>
+    <!-- 音源：100%直接鳴るフリーの爆音電子サイレン -->
+    <audio id="alarm-sound" src="https://soundeffect-lab.info/sound/button/mp3/emergency-siren2.mp3" loop></audio>
 
     <script>
         const template7Seg = `
-        <svg viewBox="0 0 70 100" class="digit-svg">
+        <svg viewBox="0 0 70 100" class="digit-svg" preserveAspectRatio="none">
             <g>
                 <polygon points="16,2 44,2 49,7 44,12 16,12 11,7" class="seg a"/>
                 <polygon points="51,9 56,14 56,43 51,48 46,43 46,14" class="seg b"/>
@@ -225,7 +239,7 @@
         </svg>`;
 
         const templateColon = `
-        <svg viewBox="0 0 20 100" class="colon-svg">
+        <svg viewBox="0 0 20 100" class="colon-svg" preserveAspectRatio="none">
             <g>
                 <polygon points="5,25 15,25 15,35 5,35" class="dot c1" />
                 <polygon points="5,65 15,65 15,75 5,75" class="dot c2" />
@@ -258,19 +272,22 @@
             ring: document.getElementById('ring-screen')
         };
 
-        // 💡 起動時にlocalStorageをチェックして復元
+        // 起動時にlocalStorageをチェックして復元・または翌日に繰り越し
         const storedAlarmStr = localStorage.getItem('savedAlarmTime');
         if (storedAlarmStr) {
-            const parsedStoredTime = new Date(parseInt(storedAlarmStr, 10));
-            // もし設定時刻から1分以上過ぎてしまっていたら破棄する
-            if (parsedStoredTime.getTime() > Date.now() - 60000) {
-                savedAlarmTime = parsedStoredTime;
-            } else {
-                localStorage.removeItem('savedAlarmTime');
+            let parsedStoredTime = new Date(parseInt(storedAlarmStr, 10));
+            const now = new Date();
+            if (parsedStoredTime.getTime() <= now.getTime() - 60000) {
+                parsedStoredTime.setDate(now.getDate());
+                if (parsedStoredTime <= now) {
+                    parsedStoredTime.setDate(parsedStoredTime.getDate() + 1);
+                }
+                localStorage.setItem('savedAlarmTime', parsedStoredTime.getTime());
             }
+            savedAlarmTime = parsedStoredTime;
         }
 
-        function render7Seg(container, text) {
+        function render7Seg(container, text, isPicker = false) {
             container.innerHTML = '';
             for (let i = 0; i < text.length; i++) {
                 let char = text[i];
@@ -330,9 +347,9 @@
             const hStr = String(pickerDate.getHours()).padStart(2, '0');
             const mStr = String(pickerDate.getMinutes()).padStart(2, '0');
 
-            render7Seg(document.getElementById('p-day-container'), dStr);
-            render7Seg(document.getElementById('p-hour-container'), hStr);
-            render7Seg(document.getElementById('p-min-container'), mStr);
+            render7Seg(document.getElementById('p-day-container'), dStr, true);
+            render7Seg(document.getElementById('p-hour-container'), hStr, true);
+            render7Seg(document.getElementById('p-min-container'), mStr, true);
 
             document.getElementById('g-day').classList.remove('active-focus');
             document.getElementById('g-hour').classList.remove('active-focus');
@@ -349,17 +366,14 @@
 
         function updateTargetDisplay() {
             const statusText = document.getElementById('status-text');
-            
             if (!savedAlarmTime) {
                 statusText.textContent = "ALM OFF";
                 return;
             }
-            
             const mm = String(savedAlarmTime.getMonth() + 1).padStart(2, '0');
             const dd = String(savedAlarmTime.getDate()).padStart(2, '0');
             const hh = String(savedAlarmTime.getHours()).padStart(2, '0');
             const min = String(savedAlarmTime.getMinutes()).padStart(2, '0');
-            
             statusText.textContent = `ALM ACTIVE ${hh}:${min} ${mm}/${dd}`;
         }
 
@@ -376,8 +390,6 @@
             if (target <= now) target.setDate(target.getDate() + 1);
 
             savedAlarmTime = target;
-            
-            // 💡 決定時にlocalStorageに保存 (タイムスタンプを使用)
             localStorage.setItem('savedAlarmTime', savedAlarmTime.getTime());
             
             systemState = 'idle';
@@ -397,10 +409,7 @@
                 audio.pause();
                 audio.currentTime = 0;
                 savedAlarmTime = null;
-                
-                // 💡 停止時にlocalStorageから削除
                 localStorage.removeItem('savedAlarmTime');
-                
                 systemState = 'idle';
                 changeScreen('idle');
                 updateTargetDisplay();
@@ -451,10 +460,7 @@
                 case 'alert-cancel':
                     if (key === 'e') {
                         savedAlarmTime = null;
-                        
-                        // 💡 キャンセル時にlocalStorageから削除
                         localStorage.removeItem('savedAlarmTime');
-                        
                         systemState = 'idle';
                         changeScreen('idle');
                         updateTargetDisplay();
