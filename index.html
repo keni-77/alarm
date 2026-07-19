@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big Responsive Digital Clock</title>
+    <title>Alarm</title>
     <style>
         :root {
             --bg: #050806;
@@ -43,8 +43,8 @@
             background: var(--led-ring);
             color: white;
             text-align: center;
-            font-size: 20px;
-            padding: 12px 0;
+            font-size: 26px;
+            padding: 16px 0;
             z-index: 100;
             letter-spacing: 2px;
             font-weight: bold;
@@ -60,10 +60,9 @@
             justify-content: center;
             box-sizing: border-box;
             background: transparent;
-            padding: 0 4%;
+            padding: 0 1%; /* 左右の余白を詰める */
         }
 
-        /* 通常テキスト（ネオン風）の文字サイズを大きめに固定 */
         .normal-text {
             color: var(--led-on);
             text-shadow: 0 0 4px var(--led-glow), 0 0 10px var(--led-glow);
@@ -72,46 +71,43 @@
             white-space: nowrap;
         }
 
-        /* 西暦・日付・曜日 */
         .date-display {
-            font-size: 38px;
-            margin-bottom: 30px;
+            font-size: 50px;
+            margin-bottom: 20px;
         }
 
-        /* メイン時計コンテナ */
+        /* メイン時計コンテナ：横幅を限界まで広げる */
         .main-time-container {
-            height: 25%; 
-            width: 90%;
+            height: 35%; 
+            width: 98%; /* 96% -> 98% */
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.5vw;
         }
 
-        /* ステータス（アラーム設定時刻） */
         .status-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 40px;
-            height: 50px;
+            margin-top: 30px;
+            height: 60px;
         }
         .status-text {
-            font-size: 26px;
+            font-size: 36px;
         }
 
-        /* タイトル・警告テキスト */
-        .text-title { font-size: 36px; margin-bottom: 25px; }
-        .wake-up-text { font-size: 100px; margin: 0; line-height: 1; }
+        .text-title { font-size: 48px; margin-bottom: 20px; }
+        .wake-up-text { font-size: 140px; margin: 0; line-height: 1; }
 
-        /* ガイド（説明）テキスト */
         .guide-bar {
-            font-size: 16px; color: #666; letter-spacing: 2px; font-weight: bold; text-align: center; margin-top: 30px;
+            font-size: 20px; color: #666; letter-spacing: 2px; font-weight: bold; text-align: center; margin-top: 30px;
         }
-        .active-guide { color: #ccc; font-size: 22px; }
+        .active-guide { color: #ccc; font-size: 28px; }
 
-        /* 7セグメントの大きさを%で厳密に固定 */
-        .digit-box { height: 100%; width: 11%; transform: skewX(-6deg); }
-        .colon-box { height: 100%; width: 4%; transform: skewX(-6deg); }
+        /* メインの数字：幅を少し広げてどっしりさせる */
+        .digit-box { height: 100%; width: 14%; transform: skewX(-6deg); }
+        .colon-box { height: 100%; width: 5%; transform: skewX(-6deg); }
         .space-box { height: 100%; width: 5%; transform: skewX(-6deg); }
 
         .digit-svg, .colon-svg { 
@@ -129,15 +125,15 @@
             filter: drop-shadow(0 0 4px var(--led-glow)) drop-shadow(0 0 10px var(--led-glow));
         }
 
-        /* ピッカー周りのパーセンテージ調整 */
+        /* ピッカー周り：横幅を広げつつ、数字は縦長になるよう調整 */
         .picker-container { 
             display: flex; 
             flex-direction: row; 
             align-items: center; 
             justify-content: center; 
-            gap: 5%; 
-            height: 30%; 
-            width: 90%;
+            gap: 4%; 
+            height: 40%; 
+            width: 98%; /* 横幅広げる */
         }
         .picker-group { 
             display: flex; 
@@ -147,27 +143,26 @@
             opacity: 0.2; 
             transition: opacity 0.2s; 
             height: 100%;
-            width: 25%;
+            width: 30%; /* 26% -> 30% */
         }
         .picker-group.active-focus { opacity: 1; }
         
-        /* 2桁の数字が離れすぎないように幅を固定 */
         .picker-group .digit-pair { 
-            height: 60%; 
+            height: 55%; 
             width: 100%;
             display: flex; 
             justify-content: center;
-            gap: 4%;
+            gap: 5%;
         } 
-        /* 設定画面内の数字の箱サイズ */
+        /* 【重要】設定画面の数字：幅を絞って（45% -> 35%）縦長に見えるように修正 */
         .picker-group .digit-pair .digit-box {
             height: 100%;
-            width: 45%;
+            width: 35%; 
         }
         
-        .arrow { font-size: 28px; color: var(--text-muted); margin: 0; font-weight: bold; cursor: pointer;}
+        .arrow { font-size: 40px; color: var(--text-muted); margin: 0; font-weight: bold; cursor: pointer;}
         .active-focus .arrow { color: var(--led-on); text-shadow: 0 0 10px var(--led-glow); }
-        .picker-label { font-size: 22px; margin-top: 5px; }
+        .picker-label { font-size: 32px; margin-top: 5px; }
 
     </style>
 </head>
@@ -175,7 +170,6 @@
 
     <div id="audio-notice">TAP OR PRESS ANY KEY TO START</div>
 
-    <!-- メイン画面 -->
     <div class="screen" id="main-screen">
         <div id="date-text" class="normal-text date-display"></div>
         <div id="clock-container" class="main-time-container"></div>
@@ -184,7 +178,6 @@
         </div>
     </div>
 
-    <!-- アラーム設定画面 -->
     <div class="screen" id="config-screen" style="display:none;">
         <div class="normal-text text-title">SET ALARM</div>
         <div class="picker-container">
@@ -209,18 +202,15 @@
         </div>
     </div>
 
-    <!-- キャンセル画面 -->
     <div class="screen" id="cancel-screen" style="display:none;">
         <div class="normal-text text-title">CANCEL ALARM?</div>
         <div class="guide-bar active-guide">[E] TURN OFF ALARM &nbsp;&nbsp;&nbsp; [Q] KEEP ALARM</div>
     </div>
 
-    <!-- アラーム鳴動画面 -->
     <div class="screen" id="ring-screen" style="display:none;">
         <div class="normal-text wake-up-text">WAKE UP!</div>
     </div>
 
-    <!-- 音源：100%直接鳴るフリーの爆音電子サイレン -->
     <audio id="alarm-sound" src="https://soundeffect-lab.info/sound/button/mp3/emergency-siren2.mp3" loop></audio>
 
     <script>
@@ -272,7 +262,6 @@
             ring: document.getElementById('ring-screen')
         };
 
-        // 起動時にlocalStorageをチェックして復元・または翌日に繰り越し
         const storedAlarmStr = localStorage.getItem('savedAlarmTime');
         if (storedAlarmStr) {
             let parsedStoredTime = new Date(parseInt(storedAlarmStr, 10));
