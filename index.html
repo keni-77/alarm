@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Responsive Digital Clock</title>
+    <style>
+        :root {
+            --bg: #050806;
+            --led-on: #11ff77;
+            --led-glow: rgba(17, 255, 119, 0.4);
+            --led-off: #0a1710;
+            --led-ring: #ff2233;
+            --led-ring-glow: rgba(255, 34, 51, 0.5);
+            --led-ring-off: #1a0808;
+            --text-muted: #555;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            background-color: var(--bg);
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        @keyframes ring-flash {
+            0%, 100% { background-color: var(--bg); }
+            50% { background-color: #2b0005; }
+        }
+        body.ringing {
+            --led-on: var(--led-ring);
+            --led-glow: var(--led-ring-glow);
+            --led-off: var(--led-ring-off);
+            animation: ring-flash 0.5s infinite;
+        }
+
+        #audio-notice {
+            position: fixed;
+            top: 0; left: 0; width: 100vw;
+            background: var(--led-ring);
+            color: white;
+            text-align: center;
+            font-size: min(2vh, 3vw);
+            padding: 1vh 0;
+            z-index: 100;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            background: transparent;
+            padding: 0 2vw;
+        }
+
+        /* 通常テキストスタイル（ネオン風） */
+        .normal-text {
+            color: var(--led-on);
+            text-shadow: 0 0 4px var(--led-glow), 0 0 10px var(--led-glow);
+            font-weight: bold;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        /* 西暦・日付・曜日（少しデカく） */
+        .date-display {
+            font-size: min(7vh, 8vw);
+            margin-bottom: 4vh;
+        }
+
+        /* メイン時計（ほんの少し小さく） */
+        .main-time-container {
+            height: min(28vh, 20vw); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1vw;
+        }
+
+        /* ステータス（アラーム設定時刻など） */
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 5vh;
+            height: min(8vh, 10vw);
+        }
+        .status-text {
+            font-size: min(4.5vh, 5.5vw);
+        }
+
+        /* タイトル・警告テキスト */
+        .text-title { font-size: min(7vh, 9vw); margin-bottom: 3vh; }
+        .wake-up-text { font-size: min(25vh, 25vw); margin: 0; line-height: 1; }
+
+        /* ガイド（説明）テキスト */
+        .guide-bar {
+            font-size: min(2vh, 2.5vw); color: #666; letter-spacing: 2px; font-weight: bold; text-align: center; margin-top: 4vh;
+        }
+        .active-guide { color: #ccc; font-size: min(3vh, 4vw); }
+
+        /* 7セグメントの比率と傾き設定 */
+        .digit-box { height: 100%; aspect-ratio: 70 / 100; transform: skewX(-6deg); }
+        .colon-box { height: 100%; aspect-ratio: 20 / 100; transform: skewX(-6deg); }
+        .space-box { height: 100%; aspect-ratio: 30 / 100; transform: skewX(-6deg); }
+
+        .digit-svg, .colon-svg { 
+            width: 100%; height: 100%; 
+            display: block;
+            overflow: visible; 
+        }
+
+        .seg, .dot {
+            fill: var(--led-off);
+            transition: fill 0.05s;
+        }
+        .seg.on, .dot.on {
+            fill: var(--led-on);
+            filter: drop-shadow(0 0 4px var(--led-glow)) drop-shadow(0 0 10px var(--led-glow));
+        }
+
+        /* ピッカー周りの調整 */
+        .picker-container { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6vw; 
+            height: min(25vh, 25vw); 
+            width: 100%;
+        }
+        .picker-group { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: space-between; 
+            opacity: 0.2; 
+            transition: opacity 0.2s; 
+            height: 100%;
+        }
+        .picker-group.active-focus { opacity: 1; }
+        .picker-group .digit-pair { height: 50%; display: flex; gap: 0.5vw;} 
+        
+        .arrow { font-size: min(5vh, 6vw); color: var(--text-muted); margin: 0; font-weight: bold; cursor: pointer;}
+        .active-focus .arrow { color: var(--led-on); text-shadow: 0 0 10px var(--led-glow); }
+        .picker-label { font-size: min(4vh, 5vw); margin-top: 1vh; }
+
+    </style>
+</head>
+<body>
+
+    <div id="audio-notice">TAP OR PRESS ANY KEY TO START</div>
+
+    <!-- メイン画面 -->
+    <div class="screen" id="main-screen">
+        <div id="date-text" class="normal-text date-display"></div>
+        <div id="clock-container" class="main-time-container"></div>
+        <div class="status-row">
+            <!-- アラーム時刻も通常テキストで表示 -->
+            <div id="status-text" class="normal-text status-text"></div>
+        </div>
+    </div>
+
+    <!-- アラーム設定画面 -->
+    <div class="screen" id="config-screen" style="display:none;">
+        <div class="normal-text text-title">SET ALARM</div>
+        <div class="picker-container">
+            <div class="picker-group" id="g-day">
+                <div class="arrow">▲</div>
+                <div class="digit-pair" id="p-day-container"></div>
+                <div class="normal-text picker-label">DAY</div>
+                <div class="arrow">▼</div>
+            </div>
+            <div class="picker-group" id="g-hour">
+                <div class="arrow">▲</div>
+                <div class="digit-pair" id="p-hour-container"></div>
+                <div class="normal-text picker-label">HOUR</div>
+                <div class="arrow">▼</div>
+            </div>
+            <div class="picker-group" id="g-min">
+                <div class="arrow">▲</div>
+                <div class="digit-pair" id="p-min-container"></div>
+                <div class="normal-text picker-label">MIN</div>
+                <div class="arrow">▼</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- キャンセル画面（説明を復活） -->
+    <div class="screen" id="cancel-screen" style="display:none;">
+        <div class="normal-text text-title">CANCEL ALARM?</div>
+        <div class="guide-bar active-guide">[E] TURN OFF ALARM &nbsp;&nbsp;&nbsp; [Q] KEEP ALARM</div>
+    </div>
+
+    <!-- アラーム鳴動画面 -->
+    <div class="screen" id="ring-screen" style="display:none;">
+        <div class="normal-text wake-up-text">WAKE UP!</div>
+    </div>
+
+    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" loop></audio>
+
+    <script>
+        const template7Seg = `
+        <svg viewBox="0 0 70 100" class="digit-svg">
+            <g>
+                <polygon points="16,2 44,2 49,7 44,12 16,12 11,7" class="seg a"/>
+                <polygon points="51,9 56,14 56,43 51,48 46,43 46,14" class="seg b"/>
+                <polygon points="51,52 56,57 56,86 51,91 46,86 46,57" class="seg c"/>
+                <polygon points="16,88 44,88 49,93 44,98 16,98 11,93" class="seg d"/>
+                <polygon points="9,52 14,57 14,86 9,91 4,86 4,57" class="seg e"/>
+                <polygon points="9,9 14,14 14,43 9,48 4,43 4,14" class="seg f"/>
+                <polygon points="16,45 44,45 49,50 44,55 16,55 11,50" class="seg g"/>
+                <polygon points="56,83 66,83 66,93 56,93" class="seg dp"/>
+            </g>
+        </svg>`;
+
+        const templateColon = `
+        <svg viewBox="0 0 20 100" class="colon-svg">
+            <g>
+                <polygon points="5,25 15,25 15,35 5,35" class="dot c1" />
+                <polygon points="5,65 15,65 15,75 5,75" class="dot c2" />
+            </g>
+        </svg>`;
+
+        const seg7Patterns = {
+            '0': ['a', 'b', 'c', 'd', 'e', 'f'],
+            '1': ['b', 'c'],
+            '2': ['a', 'b', 'g', 'e', 'd'],
+            '3': ['a', 'b', 'g', 'c', 'd'],
+            '4': ['f', 'g', 'b', 'c'],
+            '5': ['a', 'f', 'g', 'c', 'd'],
+            '6': ['a', 'f', 'e', 'd', 'c', 'g'],
+            '7': ['a', 'b', 'c'],
+            '8': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+            '9': ['a', 'b', 'c', 'd', 'f', 'g'],
+            '-': ['g']
+        };
+
+        const audio = document.getElementById('alarm-sound');
+        let savedAlarmTime = null; 
+        let systemState = 'idle'; 
+        let pickerDate = new Date();
+
+        const screens = {
+            idle: document.getElementById('main-screen'),
+            config: document.getElementById('config-screen'),
+            cancel: document.getElementById('cancel-screen'),
+            ring: document.getElementById('ring-screen')
+        };
+
+        // 💡 起動時にlocalStorageをチェックして復元
+        const storedAlarmStr = localStorage.getItem('savedAlarmTime');
+        if (storedAlarmStr) {
+            const parsedStoredTime = new Date(parseInt(storedAlarmStr, 10));
+            // もし設定時刻から1分以上過ぎてしまっていたら破棄する
+            if (parsedStoredTime.getTime() > Date.now() - 60000) {
+                savedAlarmTime = parsedStoredTime;
+            } else {
+                localStorage.removeItem('savedAlarmTime');
+            }
+        }
+
+        function render7Seg(container, text) {
+            container.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                
+                if (char === ' ') {
+                    const space = document.createElement('div');
+                    space.className = 'space-box';
+                    container.appendChild(space);
+                    continue;
+                }
+                if (char === ':') {
+                    const div = document.createElement('div');
+                    div.className = 'colon-box';
+                    div.innerHTML = templateColon;
+                    container.appendChild(div);
+                    div.querySelectorAll('.dot').forEach(d => d.classList.add('on'));
+                    continue;
+                }
+                
+                const div = document.createElement('div');
+                div.className = 'digit-box';
+                div.innerHTML = template7Seg;
+                container.appendChild(div);
+                
+                let activeSegs = [...(seg7Patterns[char] || [])];
+                
+                if (i + 1 < text.length && text[i + 1] === '.') {
+                    activeSegs.push('dp');
+                    i++; 
+                }
+                
+                activeSegs.forEach(seg => {
+                    const segEl = div.querySelector(`.${seg}`);
+                    if (segEl) segEl.classList.add('on');
+                });
+            }
+        }
+
+        function changeScreen(state) {
+            Object.values(screens).forEach(s => s.style.display = 'none');
+            document.body.classList.remove('ringing');
+
+            if (state === 'idle') {
+                screens.idle.style.display = 'flex';
+            } else if (state.startsWith('config')) {
+                screens.config.style.display = 'flex';
+            } else if (state === 'alert-cancel') {
+                screens.cancel.style.display = 'flex';
+            } else if (state === 'ringing') {
+                screens.ring.style.display = 'flex';
+                document.body.classList.add('ringing');
+            }
+        }
+
+        function updateConfigUI() {
+            const dStr = String(pickerDate.getDate()).padStart(2, '0');
+            const hStr = String(pickerDate.getHours()).padStart(2, '0');
+            const mStr = String(pickerDate.getMinutes()).padStart(2, '0');
+
+            render7Seg(document.getElementById('p-day-container'), dStr);
+            render7Seg(document.getElementById('p-hour-container'), hStr);
+            render7Seg(document.getElementById('p-min-container'), mStr);
+
+            document.getElementById('g-day').classList.remove('active-focus');
+            document.getElementById('g-hour').classList.remove('active-focus');
+            document.getElementById('g-min').classList.remove('active-focus');
+
+            if (systemState === 'config-day') document.getElementById('g-day').classList.add('active-focus');
+            if (systemState === 'config-hour') document.getElementById('g-hour').classList.add('active-focus');
+            if (systemState === 'config-min') document.getElementById('g-min').classList.add('active-focus');
+            
+            if (!screens.config.style.display || screens.config.style.display === 'none') {
+                changeScreen(systemState);
+            }
+        }
+
+        function updateTargetDisplay() {
+            const statusText = document.getElementById('status-text');
+            
+            if (!savedAlarmTime) {
+                statusText.textContent = "ALM OFF";
+                return;
+            }
+            
+            const mm = String(savedAlarmTime.getMonth() + 1).padStart(2, '0');
+            const dd = String(savedAlarmTime.getDate()).padStart(2, '0');
+            const hh = String(savedAlarmTime.getHours()).padStart(2, '0');
+            const min = String(savedAlarmTime.getMinutes()).padStart(2, '0');
+            
+            statusText.textContent = `ALM ACTIVE ${hh}:${min} ${mm}/${dd}`;
+        }
+
+        function adjustValue(amount) {
+            if (systemState === 'config-day') pickerDate.setDate(pickerDate.getDate() + amount);
+            if (systemState === 'config-hour') pickerDate.setHours(pickerDate.getHours() + amount);
+            if (systemState === 'config-min') pickerDate.setMinutes(pickerDate.getMinutes() + amount);
+            updateConfigUI();
+        }
+
+        function commitAlarm() {
+            const now = new Date();
+            let target = new Date(pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(), pickerDate.getHours(), pickerDate.getMinutes(), 0, 0);
+            if (target <= now) target.setDate(target.getDate() + 1);
+
+            savedAlarmTime = target;
+            
+            // 💡 決定時にlocalStorageに保存 (タイムスタンプを使用)
+            localStorage.setItem('savedAlarmTime', savedAlarmTime.getTime());
+            
+            systemState = 'idle';
+            changeScreen('idle');
+            updateTargetDisplay(); 
+            updateClock();
+        }
+
+        function checkOverlayOrRing() {
+            const notice = document.getElementById('audio-notice');
+            if (notice.style.display !== 'none') {
+                audio.load();
+                notice.style.display = 'none';
+                return true;
+            }
+            if (systemState === 'ringing' || !audio.paused) {
+                audio.pause();
+                audio.currentTime = 0;
+                savedAlarmTime = null;
+                
+                // 💡 停止時にlocalStorageから削除
+                localStorage.removeItem('savedAlarmTime');
+                
+                systemState = 'idle';
+                changeScreen('idle');
+                updateTargetDisplay();
+                return true;
+            }
+            return false;
+        }
+
+        window.addEventListener('keydown', (event) => {
+            const key = event.key.toLowerCase();
+            if (checkOverlayOrRing()) return;
+
+            switch(systemState) {
+                case 'idle':
+                    if (key === 'e') {
+                        pickerDate = new Date();
+                        pickerDate.setMinutes(pickerDate.getMinutes() + 1); 
+                        systemState = 'config-day';
+                        updateConfigUI();
+                    } else if (key === 'q' && savedAlarmTime) {
+                        systemState = 'alert-cancel';
+                        changeScreen('alert-cancel');
+                    }
+                    break;
+
+                case 'config-day':
+                case 'config-hour':
+                case 'config-min':
+                    if (key === 'e') commitAlarm();
+                    else if (key === 'q') {
+                        systemState = 'idle';
+                        changeScreen('idle');
+                    }
+                    else if (key === 'w') adjustValue(1);
+                    else if (key === 's') adjustValue(-1);
+                    else if (key === 'd') {
+                        if (systemState === 'config-day') systemState = 'config-hour';
+                        else if (systemState === 'config-hour') systemState = 'config-min';
+                        updateConfigUI();
+                    }
+                    else if (key === 'a') {
+                        if (systemState === 'config-min') systemState = 'config-hour';
+                        else if (systemState === 'config-hour') systemState = 'config-day';
+                        updateConfigUI();
+                    }
+                    break;
+
+                case 'alert-cancel':
+                    if (key === 'e') {
+                        savedAlarmTime = null;
+                        
+                        // 💡 キャンセル時にlocalStorageから削除
+                        localStorage.removeItem('savedAlarmTime');
+                        
+                        systemState = 'idle';
+                        changeScreen('idle');
+                        updateTargetDisplay();
+                    } else if (key === 'q') {
+                        systemState = 'idle';
+                        changeScreen('idle');
+                    }
+                    break;
+            }
+        });
+
+        document.body.addEventListener('click', () => { checkOverlayOrRing(); });
+
+        function updateClock() {
+            const now = new Date();
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            
+            if (systemState === 'idle') {
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const dayStr = days[now.getDay()];
+                
+                document.getElementById('date-text').textContent = `${yyyy}. ${mm}. ${dd} ${dayStr}`;
+                
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                render7Seg(document.getElementById('clock-container'), `${h}:${m}:${s}`);
+            }
+
+            if (savedAlarmTime && systemState !== 'ringing') {
+                if (now.getFullYear() === savedAlarmTime.getFullYear() &&
+                    now.getMonth() === savedAlarmTime.getMonth() &&
+                    now.getDate() === savedAlarmTime.getDate() &&
+                    now.getHours() === savedAlarmTime.getHours() &&
+                    now.getMinutes() === savedAlarmTime.getMinutes()) {
+                    
+                    systemState = 'ringing';
+                    changeScreen('ringing');
+                    audio.volume = 1.0;
+                    audio.play().catch(err => {});
+                }
+            }
+        }
+
+        changeScreen('idle');
+        updateTargetDisplay();
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
